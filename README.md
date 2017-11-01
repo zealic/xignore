@@ -1,3 +1,5 @@
+[![Build Status][travis-image]][travis-url]
+
 
 xignore
 ===========
@@ -11,3 +13,7 @@ Zealic (<zealic@gmail.com>)
 ## License
 
 MIT
+
+
+[travis-image]: https://travis-ci.org/zealic/xignore.svg
+[travis-url]:   https://travis-ci.org/zealic/xignore
