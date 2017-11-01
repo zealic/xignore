@@ -111,7 +111,7 @@ func (p *Pattern) Match(path string) (bool, error) {
 		}
 	}
 
-	b := p.regexp.MatchString(path)
+	b := p.regexp.MatchString(path) || p.regexp.MatchString(filepath.Base(path))
 
 	return b, nil
 }

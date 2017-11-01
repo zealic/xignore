@@ -152,6 +152,7 @@ func TestIsMatch(t *testing.T) {
 		{"abc/**", "abc/def/ghi", true},
 		{"**/.foo", ".foo", true},
 		{"**/.foo", "bar.foo", false},
+		{"*.log", "dir/file.log", true},
 	}
 
 	if runtime.GOOS != "windows" {
