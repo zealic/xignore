@@ -22,6 +22,16 @@ type DirIgnoreOptions struct {
 	// Isolate bool
 }
 
+// DirMatchesResult directory matches result
+type DirMatchesResult struct {
+	BaseDir        string
+	MatchedFiles   []string
+	UnmatchedFiles []string
+	MatchedDirs    []string
+	UnmatchedDirs  []string
+	//ErrorFiles     []string
+}
+
 // DirMatches returns matched files from dir files.
 func DirMatches(dir string, options *DirIgnoreOptions) (*DirMatchesResult, error) {
 	var err error
@@ -105,6 +115,7 @@ func DirMatches(dir string, options *DirIgnoreOptions) (*DirMatchesResult, error
 		}
 	}
 	return &DirMatchesResult{
+		BaseDir:        basedir,
 		MatchedFiles:   mfiles,
 		UnmatchedFiles: ufiles,
 		MatchedDirs:    mdirs,
@@ -138,13 +149,4 @@ func flatPatterns(ignoreFilePath string, options *DirIgnoreOptions) ([]string, e
 	}
 
 	return patterns, nil
-}
-
-// DirMatchesResult directory matches result
-type DirMatchesResult struct {
-	MatchedFiles   []string
-	UnmatchedFiles []string
-	MatchedDirs    []string
-	UnmatchedDirs  []string
-	//ErrorFiles     []string
 }
