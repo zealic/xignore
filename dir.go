@@ -90,7 +90,7 @@ func DirMatches(dir string, options *DirIgnoreOptions) (*DirMatchesResult, error
 		}
 
 		if entry.IsDir() {
-			subResult, err := DirMatches(filepath.Join(basedir, entry.Name()), &DirIgnoreOptions{
+			subResult, err := DirMatches(filepath.Join(dir, entry.Name()), &DirIgnoreOptions{
 				BaseDir:        basedir,
 				IgnoreFile:     options.IgnoreFile,
 				BeforePatterns: patterns,
@@ -106,6 +106,8 @@ func DirMatches(dir string, options *DirIgnoreOptions) (*DirMatchesResult, error
 			}
 			mfiles = append(mfiles, subResult.MatchedFiles...)
 			ufiles = append(ufiles, subResult.UnmatchedFiles...)
+			mdirs = append(mdirs, subResult.MatchedDirs...)
+			udirs = append(udirs, subResult.UnmatchedDirs...)
 		} else {
 			if match {
 				mfiles = append(mfiles, relpath)

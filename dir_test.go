@@ -26,7 +26,7 @@ func TestDirMatches_Nested(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Subset(t, result.MatchedFiles, []string{"inner/foo.md", "inner/2.lst"})
-	assert.Subset(t, result.UnmatchedFiles, []string{".xignore", "1.txt", "inner/.xignore"})
+	assert.Subset(t, result.UnmatchedFiles, []string{".xignore", "1.txt", "inner/.xignore", "inner/inner2/moss.ini"})
 	assert.Subset(t, result.MatchedDirs, []string{})
 	assert.Subset(t, result.UnmatchedDirs, []string{"inner"})
 }
