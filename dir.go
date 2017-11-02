@@ -10,7 +10,7 @@ import (
 type DirIgnoreOptions struct {
 	// Base directory, default to use 'dir' parameter
 	BaseDir string
-	// Global ignore filename, similar '.gitignore', '.dockerignore', 'chefignore'
+	// Ignorefile name, similar '.gitignore', '.dockerignore', 'chefignore'
 	IgnoreFile string
 	// Before user patterns.
 	BeforePatterns []string

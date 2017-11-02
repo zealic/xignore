@@ -1,4 +1,5 @@
 [![Build Status][travis-image]][travis-url]
+[![GoDoc](https://godoc.org/github.com/zealic/xignore?status.svg)](https://godoc.org/github.com/zealic/xignore)
 
 
 xignore
