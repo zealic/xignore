@@ -2,6 +2,8 @@ sudo: false
 language: go
 go:
   - 1.11
-  - tip
+env:
+  - GO111MODULE=on
+
 script:
   - make test
