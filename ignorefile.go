@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+// DefaultIgnorefile default ignorefile name ".xignore"
+const DefaultIgnorefile = ".xignore"
+
 // Ignorefile ignore file
 type Ignorefile struct {
 	Patterns []string
