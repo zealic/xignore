@@ -11,14 +11,8 @@ import (
 type MatchesOptions struct {
 	// Ignorefile name, similar '.gitignore', '.dockerignore', 'chefignore'
 	Ignorefile string
-	// Before user patterns.
-	BeforePatterns []string
-	// After user patterns.
-	AfterPatterns []string
-	// // Global ignore filename, similar '.gitignore_global'
-	// GlobalIgnoreFile string
-	// // No inherit parent directory ignorefile
-	// Isolate bool
+	// Allow nested ignorefile
+	Nested bool
 }
 
 // MatchesResult matches result
@@ -68,8 +62,17 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		return nil, err
 	}
 
+	fileMap, errorFiles, err := getFileMap(vfs, options.Ignorefile)
+	if err != nil {
+		return nil, err
+	}
+
+	return makeResult(vfs, basedir, fileMap, errorFiles), nil
+}
+
+func getPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
 	// read ignorefile
-	ignoreFilePath := options.Ignorefile
+	ignoreFilePath := ignorefile
 	if ignoreFilePath == "" {
 		ignoreFilePath = DefaultIgnorefile
 	}
@@ -96,6 +99,10 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		}
 	}
 
+	return patterns, nil
+}
+
+func getFileMap(vfs afero.Fs, ignorefile string) (map[string]bool, []string, error) {
 	// Collect all files
 	files, errorFiles := collectFiles(vfs)
 	fileMap := map[string]bool{}
@@ -104,13 +111,17 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	}
 
 	// matching patterns
+	patterns, err := getPatterns(vfs, ignorefile)
+	if err != nil {
+		return nil, nil, err
+	}
 	for _, pattern := range patterns {
 		if pattern.IsEmpty() {
 			continue
 		}
 		currFiles, err := afero.Glob(vfs, pattern.value)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if pattern.IsExclusion() {
 			for _, f := range currFiles {
@@ -123,7 +134,11 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		}
 	}
 
-	// Get result
+	return fileMap, errorFiles, nil
+}
+
+func makeResult(vfs afero.Fs, basedir string,
+	fileMap map[string]bool, errorFiles []string) *MatchesResult {
 	matchedFiles := []string{}
 	unmatchedFiles := []string{}
 	matchedDirs := []string{}
@@ -167,5 +182,5 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		MatchedDirs:    matchedDirs,
 		UnmatchedDirs:  unmatchedDirs,
 		ErrorDirs:      errorDirs,
-	}, nil
+	}
 }
