@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 	"text/scanner"
+
+	"github.com/spf13/afero"
 )
 
 // Pattern defines a single regexp used used to filter file paths.
@@ -168,4 +170,41 @@ func (p *Pattern) Prepare() error {
 	p.regexp = re
 	p.regexpText = regStr
 	return nil
+}
+
+func loadPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
+	// read ignorefile
+	ignoreFilePath := ignorefile
+	if ignoreFilePath == "" {
+		ignoreFilePath = DefaultIgnorefile
+	}
+	ignoreExists, err := afero.Exists(vfs, ignoreFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load patterns from ignorefile
+	patterns := []*Pattern{}
+	if ignoreExists {
+		f, err := vfs.Open(ignoreFilePath)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		ignoreFile := Ignorefile{}
+		err = ignoreFile.FromReader(f)
+		if err != nil {
+			return nil, err
+		}
+		for _, sp := range ignoreFile.Patterns {
+			pattern := NewPattern(sp)
+			err := pattern.Prepare()
+			if err != nil {
+				return nil, err
+			}
+			patterns = append(patterns, pattern)
+		}
+	}
+
+	return patterns, nil
 }

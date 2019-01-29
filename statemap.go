@@ -11,7 +11,7 @@ import (
 
 type stateMap map[string]bool
 
-func createFileStateMap(vfs afero.Fs, ignorefile string, rootMap bool) (stateMap, []string, error) {
+func createFileStateMap(vfs afero.Fs, patterns []*Pattern, rootMap bool) (stateMap, []string, error) {
 	// Collect all files
 	files, errorFiles := collectFiles(vfs)
 	mainMap := stateMap{}
@@ -21,13 +21,33 @@ func createFileStateMap(vfs afero.Fs, ignorefile string, rootMap bool) (stateMap
 		}
 	}
 
-	// matching patterns
-	patterns, err := loadPatterns(vfs, ignorefile)
-	if err != nil {
-		return nil, nil, err
-	}
+	mainMap.applyPatterns(vfs, files, patterns)
 
-	// files match
+	return mainMap, errorFiles, nil
+}
+
+func collectFiles(fs afero.Fs) (files []string, errFiles []string) {
+	files = []string{}
+	errFiles = []string{}
+
+	afero.Walk(fs, "", func(path string, info os.FileInfo, werr error) error {
+		if werr != nil {
+			errFiles = append(errFiles, path)
+		} else {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return
+}
+
+func (state stateMap) merge(source stateMap) {
+	for k, val := range source {
+		state[k] = val
+	}
+}
+
+func (state stateMap) applyPatterns(vfs afero.Fs, files []string, patterns []*Pattern) error {
 	filesMap := stateMap{}
 	dirPatterns := []*Pattern{}
 	for _, pattern := range patterns {
@@ -45,11 +65,11 @@ func createFileStateMap(vfs afero.Fs, ignorefile string, rootMap bool) (stateMap
 			}
 		}
 
-		// store matched/unmatched dirs
+		// generate dir based patterns
 		for _, f := range currFiles {
 			ok, err := afero.IsDir(vfs, f)
 			if err != nil {
-				return nil, nil, err
+				return err
 			}
 			if ok {
 				strPattern := f + "/**"
@@ -60,7 +80,7 @@ func createFileStateMap(vfs afero.Fs, ignorefile string, rootMap bool) (stateMap
 				dirPatterns = append(dirPatterns, dirPattern)
 				err := dirPattern.Prepare()
 				if err != nil {
-					return nil, nil, err
+					return err
 				}
 			}
 		}
@@ -84,69 +104,9 @@ func createFileStateMap(vfs afero.Fs, ignorefile string, rootMap bool) (stateMap
 		}
 	}
 
-	// merge target
-	mainMap.merge(dirFileMap)
-	mainMap.merge(filesMap)
-
-	return mainMap, errorFiles, nil
-}
-
-func collectFiles(fs afero.Fs) (files []string, errFiles []string) {
-	files = []string{}
-	errFiles = []string{}
-
-	afero.Walk(fs, "", func(path string, info os.FileInfo, werr error) error {
-		if werr != nil {
-			errFiles = append(errFiles, path)
-		} else {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return
-}
-
-func loadPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
-	// read ignorefile
-	ignoreFilePath := ignorefile
-	if ignoreFilePath == "" {
-		ignoreFilePath = DefaultIgnorefile
-	}
-	ignoreExists, err := afero.Exists(vfs, ignoreFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Load patterns from ignorefile
-	patterns := []*Pattern{}
-	if ignoreExists {
-		f, err := vfs.Open(ignoreFilePath)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		ignoreFile := Ignorefile{}
-		err = ignoreFile.FromReader(f)
-		if err != nil {
-			return nil, err
-		}
-		for _, sp := range ignoreFile.Patterns {
-			pattern := NewPattern(sp)
-			err := pattern.Prepare()
-			if err != nil {
-				return nil, err
-			}
-			patterns = append(patterns, pattern)
-		}
-	}
-
-	return patterns, nil
-}
-
-func (state stateMap) merge(source stateMap) {
-	for k, val := range source {
-		state[k] = val
-	}
+	state.merge(dirFileMap)
+	state.merge(filesMap)
+	return nil
 }
 
 func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string, error) {
@@ -169,12 +129,17 @@ func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string
 	for _, ifile := range nestedIgnorefiles {
 		nestedBasedir := filepath.Dir(ifile)
 		nestedFs := afero.NewBasePathFs(vfs, nestedBasedir)
-		nestedFileMap, errorFiles, err := createFileStateMap(nestedFs, ignorefile, false)
+		patterns, err := loadPatterns(nestedFs, ignorefile)
 		if err != nil {
 			return nil, err
 		}
+
+		nestedFileMap, errorFiles, err := createFileStateMap(nestedFs, patterns, false)
 		for _, efile := range errorFiles {
 			errorFiles = append(errorFiles, filepath.Join(nestedBasedir, efile))
+		}
+		if err != nil {
+			return errorFiles, err
 		}
 
 		for nfile, matched := range nestedFileMap {

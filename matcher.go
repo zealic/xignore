@@ -15,23 +15,6 @@ type MatchesOptions struct {
 	Nested bool
 }
 
-// MatchesResult matches result
-type MatchesResult struct {
-	BaseDir string
-	// ignorefile rules matched files
-	MatchedFiles []string
-	// ignorefile rules unmatched files
-	UnmatchedFiles []string
-	// ignorefile rules matched dirs
-	MatchedDirs []string
-	// ignorefile rules unmatched dirs
-	UnmatchedDirs []string
-	// error files when return error
-	ErrorFiles []string
-	// error files when return error
-	ErrorDirs []string
-}
-
 // Matcher xignore matcher
 type Matcher struct {
 	fs afero.Fs
@@ -54,7 +37,11 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	}
 
 	// Root filemap
-	fileMap, errorFiles, err := createFileStateMap(vfs, ignorefile, true)
+	patterns, err := loadPatterns(vfs, ignorefile)
+	if err != nil {
+		return nil, err
+	}
+	fileMap, errorFiles, err := createFileStateMap(vfs, patterns, true)
 	if err != nil {
 		return nil, err
 	}
