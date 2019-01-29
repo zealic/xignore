@@ -30,7 +30,10 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 
 	// Root filemap
 	rootMap := stateMap{}
-	files, errorFiles := collectFiles(vfs)
+	files, err := collectFiles(vfs)
+	if err != nil {
+		return nil, err
+	}
 	// Init all files state
 	rootMap.mergeFiles(files, false)
 
@@ -45,12 +48,9 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	}
 
 	// Apply ignorefile patterns
-	ierrFiles, err := rootMap.applyIgnorefile(vfs, ignorefile, options.Nested)
+	err = rootMap.applyIgnorefile(vfs, ignorefile, options.Nested)
 	if err != nil {
 		return nil, err
-	}
-	for _, efile := range ierrFiles {
-		errorFiles = append(errorFiles, efile)
 	}
 
 	// Apply after patterns
@@ -63,23 +63,20 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		return nil, err
 	}
 
-	return makeResult(vfs, basedir, rootMap, errorFiles)
+	return makeResult(vfs, basedir, rootMap)
 }
 
-func makeResult(vfs afero.Fs, basedir string,
-	fileMap stateMap, errorFiles []string) (*MatchesResult, error) {
+func makeResult(vfs afero.Fs, basedir string, fileMap stateMap) (*MatchesResult, error) {
 	matchedFiles := []string{}
 	unmatchedFiles := []string{}
 	matchedDirs := []string{}
 	unmatchedDirs := []string{}
-	errorDirs := []string{}
 	for f, matched := range fileMap {
 		if f == "" {
 			continue
 		}
 		isDir, err := afero.IsDir(vfs, f)
 		if err != nil {
-			errorDirs = append(errorDirs, f)
 			return nil, err
 		}
 		if isDir {
@@ -99,17 +96,13 @@ func makeResult(vfs afero.Fs, basedir string,
 
 	sort.Strings(matchedFiles)
 	sort.Strings(unmatchedFiles)
-	sort.Strings(errorFiles)
 	sort.Strings(matchedDirs)
 	sort.Strings(unmatchedDirs)
-	sort.Strings(errorDirs)
 	return &MatchesResult{
 		BaseDir:        basedir,
 		MatchedFiles:   matchedFiles,
 		UnmatchedFiles: unmatchedFiles,
-		ErrorFiles:     errorFiles,
 		MatchedDirs:    matchedDirs,
 		UnmatchedDirs:  unmatchedDirs,
-		ErrorDirs:      errorDirs,
 	}, nil
 }

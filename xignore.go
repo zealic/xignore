@@ -23,10 +23,6 @@ type MatchesResult struct {
 	MatchedDirs []string
 	// ignorefile rules unmatched dirs
 	UnmatchedDirs []string
-	// error files when return error
-	ErrorFiles []string
-	// error files when return error
-	ErrorDirs []string
 }
 
 // DirMatches returns match result from basedir.

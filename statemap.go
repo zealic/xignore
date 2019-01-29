@@ -11,16 +11,15 @@ import (
 
 type stateMap map[string]bool
 
-func collectFiles(fs afero.Fs) (files []string, errFiles []string) {
+func collectFiles(fs afero.Fs) (files []string, err error) {
 	files = []string{}
-	errFiles = []string{}
 
 	afero.Walk(fs, "", func(path string, info os.FileInfo, werr error) error {
 		if werr != nil {
-			errFiles = append(errFiles, path)
-		} else {
-			files = append(files, path)
+			err = werr
+			return nil
 		}
+		files = append(files, path)
 		return nil
 	})
 	return
@@ -100,7 +99,7 @@ func (state stateMap) applyPatterns(vfs afero.Fs, files []string, patterns []*Pa
 	return nil
 }
 
-func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bool) ([]string, error) {
+func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bool) error {
 	// Apply nested ignorefile
 	ignorefiles := []string{}
 
@@ -121,7 +120,6 @@ func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bo
 		ignorefiles = []string{ignorefile}
 	}
 
-	errorFiles := []string{}
 	for _, ifile := range ignorefiles {
 		currBasedir := filepath.Dir(ifile)
 		currFs := vfs
@@ -130,17 +128,17 @@ func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bo
 		}
 		patterns, err := loadPatterns(currFs, ignorefile)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		currMap := stateMap{}
-		currFiles, errorFiles := collectFiles(currFs)
-		currMap.applyPatterns(currFs, currFiles, patterns)
-		for _, efile := range errorFiles {
-			errorFiles = append(errorFiles, filepath.Join(currBasedir, efile))
-		}
+		currFiles, err := collectFiles(currFs)
 		if err != nil {
-			return errorFiles, err
+			return err
+		}
+		err = currMap.applyPatterns(currFs, currFiles, patterns)
+		if err != nil {
+			return err
 		}
 
 		for nfile, matched := range currMap {
@@ -149,13 +147,5 @@ func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bo
 		}
 	}
 
-	// Remove error files
-	for _, efile := range errorFiles {
-		errorFiles = append(errorFiles, efile)
-		if ok := state[efile]; ok {
-			delete(state, efile)
-		}
-	}
-
-	return errorFiles, nil
+	return nil
 }
