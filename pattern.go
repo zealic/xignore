@@ -12,9 +12,11 @@ func NewPattern(strPattern string) *Pattern {
 		return &Pattern{value: ""} // empty
 	}
 
-	if strPattern[0] == '!' && len(strPattern) > 1 {
-		strPattern = strPattern[1:]
-		return &Pattern{value: strPattern, exclusion: true}
+	if strPattern[0] == '!' {
+		if len(strPattern) == 1 {
+			return &Pattern{value: ""} // empty
+		}
+		return &Pattern{value: strPattern[1:], exclusion: true}
 	}
 
 	return &Pattern{value: strPattern}

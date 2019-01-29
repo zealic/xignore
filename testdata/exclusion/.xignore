@@ -1,3 +1,4 @@
 /e*.txt
 !/e2.txt
 en/e3.txt
+!

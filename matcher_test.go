@@ -44,7 +44,7 @@ func TestMatches_Exclusion(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{"e1.txt", "e3.txt", "en/e3.txt"}, result.MatchedFiles)
-	require.Equal(t, []string{".xignore", "e2.txt", "en/e1.txt", "en/e2.txt"}, result.UnmatchedFiles)
+	require.Equal(t, []string{"!", ".xignore", "e2.txt", "en/e1.txt", "en/e2.txt"}, result.UnmatchedFiles)
 	require.Empty(t, result.ErrorFiles)
 	require.Empty(t, result.MatchedDirs)
 	require.Equal(t, []string{"en"}, result.UnmatchedDirs)
