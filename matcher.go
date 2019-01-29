@@ -17,13 +17,19 @@ type MatchesOptions struct {
 
 // MatchesResult matches result
 type MatchesResult struct {
-	BaseDir        string
-	MatchedFiles   []string
+	BaseDir string
+	// ignorefile rules matched files
+	MatchedFiles []string
+	// ignorefile rules unmatched files
 	UnmatchedFiles []string
-	ErrorFiles     []string
-	MatchedDirs    []string
-	UnmatchedDirs  []string
-	ErrorDirs      []string
+	// ignorefile rules matched dirs
+	MatchedDirs []string
+	// ignorefile rules unmatched dirs
+	UnmatchedDirs []string
+	// error files when return error
+	ErrorFiles []string
+	// error files when return error
+	ErrorDirs []string
 }
 
 // Matcher xignore matcher
@@ -64,11 +70,11 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 		}
 	}
 
-	return makeResult(vfs, basedir, fileMap, errorFiles), nil
+	return makeResult(vfs, basedir, fileMap, errorFiles)
 }
 
 func makeResult(vfs afero.Fs, basedir string,
-	fileMap stateMap, errorFiles []string) *MatchesResult {
+	fileMap stateMap, errorFiles []string) (*MatchesResult, error) {
 	matchedFiles := []string{}
 	unmatchedFiles := []string{}
 	matchedDirs := []string{}
@@ -81,7 +87,7 @@ func makeResult(vfs afero.Fs, basedir string,
 		isDir, err := afero.IsDir(vfs, f)
 		if err != nil {
 			errorDirs = append(errorDirs, f)
-			continue
+			return nil, err
 		}
 		if isDir {
 			if matched {
@@ -112,5 +118,5 @@ func makeResult(vfs afero.Fs, basedir string,
 		MatchedDirs:    matchedDirs,
 		UnmatchedDirs:  unmatchedDirs,
 		ErrorDirs:      errorDirs,
-	}
+	}, nil
 }
