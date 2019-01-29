@@ -1,5 +1,13 @@
 package xignore
 
+// MatchesOptions matches options
+type MatchesOptions struct {
+	// Ignorefile name, similar '.gitignore', '.dockerignore', 'chefignore'
+	Ignorefile string
+	// Allow nested ignorefile
+	Nested bool
+}
+
 // MatchesResult matches result
 type MatchesResult struct {
 	BaseDir string

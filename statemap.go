@@ -11,21 +11,6 @@ import (
 
 type stateMap map[string]bool
 
-func createFileStateMap(vfs afero.Fs, patterns []*Pattern, rootMap bool) (stateMap, []string, error) {
-	// Collect all files
-	files, errorFiles := collectFiles(vfs)
-	mainMap := stateMap{}
-	if rootMap {
-		for _, f := range files {
-			mainMap[f] = false
-		}
-	}
-
-	mainMap.applyPatterns(vfs, files, patterns)
-
-	return mainMap, errorFiles, nil
-}
-
 func collectFiles(fs afero.Fs) (files []string, errFiles []string) {
 	files = []string{}
 	errFiles = []string{}
@@ -44,6 +29,12 @@ func collectFiles(fs afero.Fs) (files []string, errFiles []string) {
 func (state stateMap) merge(source stateMap) {
 	for k, val := range source {
 		state[k] = val
+	}
+}
+
+func (state stateMap) mergeFiles(files []string, value bool) {
+	for _, f := range files {
+		state[f] = value
 	}
 }
 
@@ -134,7 +125,9 @@ func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string
 			return nil, err
 		}
 
-		nestedFileMap, errorFiles, err := createFileStateMap(nestedFs, patterns, false)
+		nestedFileMap := stateMap{}
+		nestedFiles, errorFiles := collectFiles(nestedFs)
+		nestedFileMap.applyPatterns(nestedFs, nestedFiles, patterns)
 		for _, efile := range errorFiles {
 			errorFiles = append(errorFiles, filepath.Join(nestedBasedir, efile))
 		}

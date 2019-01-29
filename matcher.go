@@ -7,14 +7,6 @@ import (
 	"github.com/spf13/afero"
 )
 
-// MatchesOptions matches options
-type MatchesOptions struct {
-	// Ignorefile name, similar '.gitignore', '.dockerignore', 'chefignore'
-	Ignorefile string
-	// Allow nested ignorefile
-	Nested bool
-}
-
 // Matcher xignore matcher
 type Matcher struct {
 	fs afero.Fs
@@ -41,7 +33,10 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	if err != nil {
 		return nil, err
 	}
-	fileMap, errorFiles, err := createFileStateMap(vfs, patterns, true)
+	fileMap := stateMap{}
+	files, errorFiles := collectFiles(vfs)
+	fileMap.mergeFiles(files, false)
+	err = fileMap.applyPatterns(vfs, files, patterns)
 	if err != nil {
 		return nil, err
 	}
