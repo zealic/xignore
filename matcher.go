@@ -34,13 +34,33 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	// Init all files state
 	rootMap.mergeFiles(files, false)
 
-	// Apply  ignorefile pattern
+	// Apply before patterns
+	beforePatterns, err := makePatterns(options.BeforePatterns)
+	if err != nil {
+		return nil, err
+	}
+	err = rootMap.applyPatterns(vfs, files, beforePatterns)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply ignorefile patterns
 	ierrFiles, err := rootMap.applyIgnorefile(vfs, ignorefile, options.Nested)
 	if err != nil {
 		return nil, err
 	}
 	for _, efile := range ierrFiles {
 		errorFiles = append(errorFiles, efile)
+	}
+
+	// Apply after patterns
+	afterPatterns, err := makePatterns(options.AfterPatterns)
+	if err != nil {
+		return nil, err
+	}
+	err = rootMap.applyPatterns(vfs, files, afterPatterns)
+	if err != nil {
+		return nil, err
 	}
 
 	return makeResult(vfs, basedir, rootMap, errorFiles)

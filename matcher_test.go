@@ -21,6 +21,38 @@ func TestMatches_Simple(t *testing.T) {
 	require.Empty(t, result.ErrorDirs)
 }
 
+func TestMatches_Simple_WithBeforePatterns(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/simple", &MatchesOptions{
+		Ignorefile:     ".xignore",
+		BeforePatterns: []string{"rain.txt"},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, result.MatchedFiles, []string{".xignore", "empty.log", "rain.txt"})
+	require.Equal(t, result.UnmatchedFiles, []string{})
+	require.Empty(t, result.ErrorFiles)
+	require.Empty(t, result.MatchedDirs)
+	require.Empty(t, result.UnmatchedDirs)
+	require.Empty(t, result.ErrorDirs)
+}
+
+func TestMatches_Simple_WithAfterPatterns(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/simple", &MatchesOptions{
+		Ignorefile:    ".xignore",
+		AfterPatterns: []string{"!.xignore", "!empty.log", "rain.txt"},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, result.MatchedFiles, []string{"rain.txt"})
+	require.Equal(t, result.UnmatchedFiles, []string{".xignore", "empty.log"})
+	require.Empty(t, result.ErrorFiles)
+	require.Empty(t, result.MatchedDirs)
+	require.Empty(t, result.UnmatchedDirs)
+	require.Empty(t, result.ErrorDirs)
+}
+
 func TestMatches_Folder(t *testing.T) {
 	matcher := NewSystemMatcher()
 	result, err := matcher.Matches("testdata/folder", &MatchesOptions{

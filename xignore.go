@@ -6,6 +6,10 @@ type MatchesOptions struct {
 	Ignorefile string
 	// Allow nested ignorefile
 	Nested bool
+	// apply patterns before all ignorefile
+	BeforePatterns []string
+	// apply patterns after all ignorefile
+	AfterPatterns []string
 }
 
 // MatchesResult matches result

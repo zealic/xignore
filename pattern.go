@@ -208,3 +208,19 @@ func loadPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
 
 	return patterns, nil
 }
+
+func makePatterns(strPatterns []string) ([]*Pattern, error) {
+	if strPatterns == nil || len(strPatterns) == 0 {
+		return []*Pattern{}, nil
+	}
+
+	patterns := make([]*Pattern, len(strPatterns))
+	for i, sp := range strPatterns {
+		pattern := NewPattern(sp)
+		if err := pattern.Prepare(); err != nil {
+			return nil, err
+		}
+		patterns[i] = pattern
+	}
+	return patterns, nil
+}
