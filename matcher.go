@@ -119,10 +119,10 @@ func getPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
 func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (fileMap, []string, error) {
 	// Collect all files
 	files, errorFiles := collectFiles(vfs)
-	fileMap := map[string]bool{}
+	mainMap := fileMap{}
 	if rootMap {
 		for _, f := range files {
-			fileMap[f] = false
+			mainMap[f] = false
 		}
 	}
 
@@ -138,6 +138,10 @@ func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (fileMap, []strin
 			return nil, nil, err
 		}
 	}
+
+	// files match
+	filesMap := fileMap{}
+	dirPatterns := []*Pattern{}
 	for _, pattern := range patterns {
 		if pattern.IsEmpty() {
 			continue
@@ -145,16 +149,58 @@ func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (fileMap, []strin
 		currFiles := pattern.Matches(files)
 		if pattern.IsExclusion() {
 			for _, f := range currFiles {
-				fileMap[f] = false
+				filesMap[f] = false
 			}
 		} else {
 			for _, f := range currFiles {
-				fileMap[f] = true
+				filesMap[f] = true
+			}
+		}
+
+		// store matched/unmatched dirs
+		for _, f := range currFiles {
+			ok, err := afero.IsDir(vfs, f)
+			if err != nil {
+				return nil, nil, err
+			}
+			if ok {
+				strPattern := f + "/**"
+				if pattern.IsExclusion() {
+					strPattern = "!" + strPattern
+				}
+				dirPattern := NewPattern(strPattern)
+				dirPatterns = append(dirPatterns, dirPattern)
+				err := dirPattern.Prepare()
+				if err != nil {
+					return nil, nil, err
+				}
 			}
 		}
 	}
 
-	return fileMap, errorFiles, nil
+	// handle dirs batch matches
+	dirFileMap := map[string]bool{}
+	for _, pattern := range dirPatterns {
+		if pattern.IsEmpty() {
+			continue
+		}
+		currFiles := pattern.Matches(files)
+		if pattern.IsExclusion() {
+			for _, f := range currFiles {
+				dirFileMap[f] = false
+			}
+		} else {
+			for _, f := range currFiles {
+				dirFileMap[f] = true
+			}
+		}
+	}
+
+	// merge target
+	mainMap.merge(dirFileMap)
+	mainMap.merge(filesMap)
+
+	return mainMap, errorFiles, nil
 }
 
 func makeResult(vfs afero.Fs, basedir string,
@@ -206,6 +252,12 @@ func makeResult(vfs afero.Fs, basedir string,
 }
 
 type fileMap map[string]bool
+
+func (fileMap fileMap) merge(source fileMap) {
+	for file, val := range source {
+		fileMap[file] = val
+	}
+}
 
 func (fileMap fileMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string, error) {
 	// Apply nested ignorefile

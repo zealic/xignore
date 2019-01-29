@@ -21,6 +21,21 @@ func TestMatches_Simple(t *testing.T) {
 	require.Empty(t, result.ErrorDirs)
 }
 
+func TestMatches_Folder(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/folder", &MatchesOptions{
+		Ignorefile: ".xignore",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []string{"foo/bar/1.txt"}, result.MatchedFiles)
+	require.Equal(t, []string{".xignore", "foo/bar/tool/lex.txt", "foo/tar/2.txt"}, result.UnmatchedFiles)
+	require.Empty(t, result.ErrorFiles)
+	require.Equal(t, []string{"foo/bar"}, result.MatchedDirs)
+	require.Equal(t, []string{"foo", "foo/bar/tool", "foo/tar"}, result.UnmatchedDirs)
+	require.Empty(t, result.ErrorDirs)
+}
+
 func TestMatches_Root(t *testing.T) {
 	matcher := NewSystemMatcher()
 	result, err := matcher.Matches("testdata/root", &MatchesOptions{
