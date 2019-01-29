@@ -12,6 +12,11 @@ type Matcher struct {
 	fs afero.Fs
 }
 
+// NewMatcher create matcher from custom filesystem
+func NewMatcher(fs afero.Fs) *Matcher {
+	return &Matcher{afero.NewReadOnlyFs(fs)}
+}
+
 // NewSystemMatcher create matcher for system filesystem
 func NewSystemMatcher() *Matcher {
 	return &Matcher{afero.NewReadOnlyFs(afero.NewOsFs())}
