@@ -55,9 +55,6 @@ func (f *Ignorefile) FromReader(reader io.Reader) error {
 		if len(pattern) > 0 {
 			pattern = filepath.Clean(pattern)
 			pattern = filepath.ToSlash(pattern)
-			if len(pattern) > 1 && pattern[0] == '/' {
-				pattern = pattern[1:]
-			}
 		}
 		if invert {
 			pattern = "!" + pattern

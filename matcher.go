@@ -72,53 +72,16 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 
 	// Apply nested filemap
 	if options.Nested {
-		nestedErrorFile, err := applyNestedFileMap(vfs, ignorefile, fileMap)
+		nestedErrorFile, err := fileMap.applyIgnorefile(vfs, ignorefile)
 		if err != nil {
 			return nil, err
 		}
 		for _, efile := range nestedErrorFile {
-			if ok := fileMap[efile]; ok {
-				delete(fileMap, efile)
-			}
+			errorFiles = append(errorFiles, efile)
 		}
 	}
 
 	return makeResult(vfs, basedir, fileMap, errorFiles), nil
-}
-
-func applyNestedFileMap(vfs afero.Fs, ignorefile string, fileMap map[string]bool) ([]string, error) {
-	// Apply nested ignorefile
-	nestedIgnorefiles := []string{}
-	for file := range fileMap {
-		// all subdir ignorefiles
-		if strings.HasSuffix(file, ignorefile) && len(file) != len(ignorefile) {
-			nestedIgnorefiles = append(nestedIgnorefiles, file)
-		}
-	}
-	// Sort by dir deep level
-	sort.Slice(nestedIgnorefiles, func(i, j int) bool {
-		return len(filepath.SplitList(nestedIgnorefiles[i])) < len(filepath.SplitList(nestedIgnorefiles[j]))
-	})
-
-	errorFiles := []string{}
-	for _, ifile := range nestedIgnorefiles {
-		nestedBasedir := filepath.Dir(ifile)
-		nestedFs := afero.NewBasePathFs(vfs, nestedBasedir)
-		nestedFileMap, errorFiles, err := getFileMap(nestedFs, ignorefile, false)
-		if err != nil {
-			return nil, err
-		}
-		for _, efile := range errorFiles {
-			errorFiles = append(errorFiles, filepath.Join(nestedBasedir, efile))
-		}
-
-		for nfile, matched := range nestedFileMap {
-			parentFile := filepath.Join(nestedBasedir, nfile)
-			fileMap[parentFile] = matched
-		}
-	}
-
-	return errorFiles, nil
 }
 
 func getPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
@@ -127,14 +90,14 @@ func getPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
 	if ignoreFilePath == "" {
 		ignoreFilePath = DefaultIgnorefile
 	}
-	exists, err := afero.Exists(vfs, ignoreFilePath)
+	ignoreExists, err := afero.Exists(vfs, ignoreFilePath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Load patterns from ignorefile
 	patterns := []*Pattern{}
-	if exists {
+	if ignoreExists {
 		f, err := vfs.Open(ignoreFilePath)
 		if err != nil {
 			return nil, err
@@ -153,7 +116,7 @@ func getPatterns(vfs afero.Fs, ignorefile string) ([]*Pattern, error) {
 	return patterns, nil
 }
 
-func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (map[string]bool, []string, error) {
+func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (fileMap, []string, error) {
 	// Collect all files
 	files, errorFiles := collectFiles(vfs)
 	fileMap := map[string]bool{}
@@ -168,14 +131,18 @@ func getFileMap(vfs afero.Fs, ignorefile string, rootMap bool) (map[string]bool,
 	if err != nil {
 		return nil, nil, err
 	}
+	// Prepare regexp
+	for _, pattern := range patterns {
+		err := pattern.Prepare()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	for _, pattern := range patterns {
 		if pattern.IsEmpty() {
 			continue
 		}
-		currFiles, err := afero.Glob(vfs, pattern.value)
-		if err != nil {
-			return nil, nil, err
-		}
+		currFiles := pattern.Matches(files)
 		if pattern.IsExclusion() {
 			for _, f := range currFiles {
 				fileMap[f] = false
@@ -236,4 +203,51 @@ func makeResult(vfs afero.Fs, basedir string,
 		UnmatchedDirs:  unmatchedDirs,
 		ErrorDirs:      errorDirs,
 	}
+}
+
+type fileMap map[string]bool
+
+func (fileMap fileMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string, error) {
+	// Apply nested ignorefile
+	nestedIgnorefiles := []string{}
+	for file := range fileMap {
+		// all subdir ignorefiles
+		if strings.HasSuffix(file, ignorefile) && len(file) != len(ignorefile) {
+			nestedIgnorefiles = append(nestedIgnorefiles, file)
+		}
+	}
+	// Sort by dir deep level
+	sort.Slice(nestedIgnorefiles, func(i, j int) bool {
+		ilen := len(strings.Split(nestedIgnorefiles[i], string(os.PathSeparator)))
+		jlen := len(strings.Split(nestedIgnorefiles[j], string(os.PathSeparator)))
+		return ilen < jlen
+	})
+
+	errorFiles := []string{}
+	for _, ifile := range nestedIgnorefiles {
+		nestedBasedir := filepath.Dir(ifile)
+		nestedFs := afero.NewBasePathFs(vfs, nestedBasedir)
+		nestedFileMap, errorFiles, err := getFileMap(nestedFs, ignorefile, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, efile := range errorFiles {
+			errorFiles = append(errorFiles, filepath.Join(nestedBasedir, efile))
+		}
+
+		for nfile, matched := range nestedFileMap {
+			parentFile := filepath.Join(nestedBasedir, nfile)
+			fileMap[parentFile] = matched
+		}
+	}
+
+	// Remove error files
+	for _, efile := range errorFiles {
+		errorFiles = append(errorFiles, efile)
+		if ok := fileMap[efile]; ok {
+			delete(fileMap, efile)
+		}
+	}
+
+	return errorFiles, nil
 }
