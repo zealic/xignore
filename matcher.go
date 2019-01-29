@@ -29,30 +29,21 @@ func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResu
 	}
 
 	// Root filemap
-	patterns, err := loadPatterns(vfs, ignorefile)
-	if err != nil {
-		return nil, err
-	}
-	fileMap := stateMap{}
+	rootMap := stateMap{}
 	files, errorFiles := collectFiles(vfs)
-	fileMap.mergeFiles(files, false)
-	err = fileMap.applyPatterns(vfs, files, patterns)
+	// Init all files state
+	rootMap.mergeFiles(files, false)
+
+	// Apply  ignorefile pattern
+	ierrFiles, err := rootMap.applyIgnorefile(vfs, ignorefile, options.Nested)
 	if err != nil {
 		return nil, err
 	}
-
-	// Apply nested filemap
-	if options.Nested {
-		nestedErrorFile, err := fileMap.applyIgnorefile(vfs, ignorefile)
-		if err != nil {
-			return nil, err
-		}
-		for _, efile := range nestedErrorFile {
-			errorFiles = append(errorFiles, efile)
-		}
+	for _, efile := range ierrFiles {
+		errorFiles = append(errorFiles, efile)
 	}
 
-	return makeResult(vfs, basedir, fileMap, errorFiles)
+	return makeResult(vfs, basedir, rootMap, errorFiles)
 }
 
 func makeResult(vfs afero.Fs, basedir string,

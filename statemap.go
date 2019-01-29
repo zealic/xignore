@@ -100,43 +100,51 @@ func (state stateMap) applyPatterns(vfs afero.Fs, files []string, patterns []*Pa
 	return nil
 }
 
-func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string) ([]string, error) {
+func (state stateMap) applyIgnorefile(vfs afero.Fs, ignorefile string, nested bool) ([]string, error) {
 	// Apply nested ignorefile
-	nestedIgnorefiles := []string{}
-	for file := range state {
-		// all subdir ignorefiles
-		if strings.HasSuffix(file, ignorefile) && len(file) != len(ignorefile) {
-			nestedIgnorefiles = append(nestedIgnorefiles, file)
+	ignorefiles := []string{}
+
+	if nested {
+		for file := range state {
+			// all subdir ignorefiles
+			if strings.HasSuffix(file, ignorefile) {
+				ignorefiles = append(ignorefiles, file)
+			}
 		}
+		// Sort by dir deep level
+		sort.Slice(ignorefiles, func(i, j int) bool {
+			ilen := len(strings.Split(ignorefiles[i], string(os.PathSeparator)))
+			jlen := len(strings.Split(ignorefiles[j], string(os.PathSeparator)))
+			return ilen < jlen
+		})
+	} else {
+		ignorefiles = []string{ignorefile}
 	}
-	// Sort by dir deep level
-	sort.Slice(nestedIgnorefiles, func(i, j int) bool {
-		ilen := len(strings.Split(nestedIgnorefiles[i], string(os.PathSeparator)))
-		jlen := len(strings.Split(nestedIgnorefiles[j], string(os.PathSeparator)))
-		return ilen < jlen
-	})
 
 	errorFiles := []string{}
-	for _, ifile := range nestedIgnorefiles {
-		nestedBasedir := filepath.Dir(ifile)
-		nestedFs := afero.NewBasePathFs(vfs, nestedBasedir)
-		patterns, err := loadPatterns(nestedFs, ignorefile)
+	for _, ifile := range ignorefiles {
+		currBasedir := filepath.Dir(ifile)
+		currFs := vfs
+		if currBasedir != "." {
+			currFs = afero.NewBasePathFs(vfs, currBasedir)
+		}
+		patterns, err := loadPatterns(currFs, ignorefile)
 		if err != nil {
 			return nil, err
 		}
 
-		nestedFileMap := stateMap{}
-		nestedFiles, errorFiles := collectFiles(nestedFs)
-		nestedFileMap.applyPatterns(nestedFs, nestedFiles, patterns)
+		currMap := stateMap{}
+		currFiles, errorFiles := collectFiles(currFs)
+		currMap.applyPatterns(currFs, currFiles, patterns)
 		for _, efile := range errorFiles {
-			errorFiles = append(errorFiles, filepath.Join(nestedBasedir, efile))
+			errorFiles = append(errorFiles, filepath.Join(currBasedir, efile))
 		}
 		if err != nil {
 			return errorFiles, err
 		}
 
-		for nfile, matched := range nestedFileMap {
-			parentFile := filepath.Join(nestedBasedir, nfile)
+		for nfile, matched := range currMap {
+			parentFile := filepath.Join(currBasedir, nfile)
 			state[parentFile] = matched
 		}
 	}
