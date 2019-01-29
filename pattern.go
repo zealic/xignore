@@ -2,7 +2,6 @@ package xignore
 
 import (
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"text/scanner"
@@ -33,6 +32,13 @@ func NewPattern(strPattern string) *Pattern {
 }
 
 func (p *Pattern) String() string {
+	strPattern := p.value
+	if p.IsExclusion() {
+		strPattern = "!" + strPattern
+	}
+	if p.IsExclusion() {
+		strPattern = "!" + strPattern
+	}
 	return p.value
 }
 
@@ -61,11 +67,7 @@ func (p *Pattern) Match(path string) bool {
 		path = "/" + path
 	}
 
-	//isRootFile := strings.IndexByte(os.PathSeparator) == -1
-
-	b := p.regexp.MatchString(path) || p.regexp.MatchString(filepath.Base(path))
-
-	return b
+	return p.regexp.MatchString(path)
 }
 
 // Matches match paths
