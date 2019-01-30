@@ -2,6 +2,7 @@ package xignore
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"text/scanner"
@@ -69,7 +70,7 @@ func (p *Pattern) Match(path string) bool {
 		path = "/" + path
 	}
 
-	return p.regexp.MatchString(path)
+	return p.regexp.MatchString(path) || p.regexp.MatchString(filepath.Base(path))
 }
 
 // Matches match paths

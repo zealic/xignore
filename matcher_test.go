@@ -125,3 +125,18 @@ func TestMatches_Nested(t *testing.T) {
 	require.Empty(t, result.MatchedDirs)
 	require.Equal(t, result.UnmatchedDirs, []string{"inner", "inner/inner2"})
 }
+
+func TestMatches_ByName(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/byname", &MatchesOptions{
+		Ignorefile: ".xignore",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []string{
+		"aa/a1/a2/hello.txt", "aa/a1/hello.txt", "aa/hello.txt", "bb/hello.txt", "hello.txt",
+	}, result.MatchedFiles)
+	require.Equal(t, []string{".xignore"}, result.UnmatchedFiles)
+	require.Equal(t, []string{}, result.MatchedDirs)
+	require.Equal(t, result.UnmatchedDirs, []string{"aa", "aa/a1", "aa/a1/a2", "bb"})
+}
