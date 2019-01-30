@@ -39,9 +39,6 @@ func (p *Pattern) String() string {
 	if p.IsExclusion() {
 		strPattern = "!" + strPattern
 	}
-	if p.IsExclusion() {
-		strPattern = "!" + strPattern
-	}
 	return p.value
 }
 
