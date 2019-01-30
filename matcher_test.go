@@ -123,7 +123,7 @@ func TestMatches_Nested(t *testing.T) {
 		"inner/inner2/.xignore", "inner/inner2/jess.ini",
 	}, result.UnmatchedFiles)
 	require.Empty(t, result.MatchedDirs)
-	require.Equal(t, result.UnmatchedDirs, []string{"inner", "inner/inner2"})
+	require.Equal(t, []string{"inner", "inner/inner2"}, result.UnmatchedDirs)
 }
 
 func TestMatches_ByName(t *testing.T) {
@@ -138,5 +138,36 @@ func TestMatches_ByName(t *testing.T) {
 	}, result.MatchedFiles)
 	require.Equal(t, []string{".xignore"}, result.UnmatchedFiles)
 	require.Equal(t, []string{}, result.MatchedDirs)
-	require.Equal(t, result.UnmatchedDirs, []string{"aa", "aa/a1", "aa/a1/a2", "bb"})
+	require.Equal(t, []string{"aa", "aa/a1", "aa/a1/a2", "bb"}, result.UnmatchedDirs)
+}
+
+func TestMatches_Bothname(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/bothname", &MatchesOptions{
+		Ignorefile: ".xignore",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []string{
+		"foo/loss.txt", "loss.txt/1.log", "loss.txt/2.log",
+	}, result.MatchedFiles)
+	require.Equal(t, []string{".xignore"}, result.UnmatchedFiles)
+	require.Equal(t, []string{"loss.txt"}, result.MatchedDirs)
+	require.Equal(t, []string{"foo"}, result.UnmatchedDirs)
+}
+
+func TestMatches_LeadingSpace(t *testing.T) {
+	matcher := NewSystemMatcher()
+	result, err := matcher.Matches("testdata/leadingspace", &MatchesOptions{
+		Ignorefile: ".xignore",
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, []string{
+		"  what.txt",
+		"inner2/  what.txt",
+	}, result.MatchedFiles)
+	require.Equal(t, []string{".xignore", "inner/  what.txt"}, result.UnmatchedFiles)
+	require.Equal(t, []string{}, result.MatchedDirs)
+	require.Equal(t, []string{"inner", "inner2"}, result.UnmatchedDirs)
 }
