@@ -48,4 +48,4 @@ fmt.Printf("%#v\n", result.UnmatchedDirs)
 [godoc-image]:    https://godoc.org/github.com/zealic/xignore?status.svg
 [godoc-url]:      https://godoc.org/github.com/zealic/xignore
 [release-image]:  https://img.shields.io/github/release/zealic/xignore.svg
-[release-url]:    https://github.com/zealic/go2node/releases/xignore
+[release-url]:    https://github.com/zealic/xignore/releases
