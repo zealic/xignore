@@ -7,7 +7,7 @@ stack:
   - go 1.11
 
 before_test:
-  - set PATH=C:\MinGW\bin;%PATH%
+  - set PATH=C:\msys64;%PATH%
   - make ensure
 
 test_script:
