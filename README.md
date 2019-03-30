@@ -1,4 +1,5 @@
 [![Build Status][travis-image]][travis-url]
+[![Appveyor Status][appveyor-image]][appveyor-url]
 [![GoDoc][godoc-image]][godoc-url]
 [![GitHub release][release-image]][release-url]
 
@@ -40,9 +41,11 @@ fmt.Printf("%#v\n", result.UnmatchedDirs)
 * https://git-scm.com/docs/gitignore
 * https://github.com/moby/moby/blob/master/pkg/fileutils/fileutils.go
 
-[travis-image]: https://travis-ci.org/zealic/xignore.svg
-[travis-url]:   https://travis-ci.org/zealic/xignore
-[godoc-image]:  https://godoc.org/github.com/zealic/xignore?status.svg
-[godoc-url]:    https://godoc.org/github.com/zealic/xignore
-[release-image]: https://img.shields.io/github/release/zealic/xignore.svg
-[release-url]:   https://github.com/zealic/go2node/releases/xignore
+[travis-image]:   https://travis-ci.org/zealic/xignore.svg
+[travis-url]:     https://travis-ci.org/zealic/xignore
+[appveyor-image]: https://ci.appveyor.com/api/projects/status/avl6x1qease9bjic?svg=true
+[appveyor-url]:   https://ci.appveyor.com/project/zealic/xignore
+[godoc-image]:    https://godoc.org/github.com/zealic/xignore?status.svg
+[godoc-url]:      https://godoc.org/github.com/zealic/xignore
+[release-image]:  https://img.shields.io/github/release/zealic/xignore.svg
+[release-url]:    https://github.com/zealic/go2node/releases/xignore

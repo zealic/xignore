@@ -1,0 +1,12 @@
+build: off
+
+environment:
+  GOPATH: c:\gopath
+
+stack: go 1.11
+
+before_test:
+  - go vet ./...
+
+test_script:
+  - go test ./...
