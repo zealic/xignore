@@ -3,10 +3,11 @@ build: off
 environment:
   GOPATH: c:\gopath
 
-stack: go 1.11
+stack:
+  - go 1.11
 
 before_test:
-  - go vet ./...
+  - make ensure
 
 test_script:
-  - go test ./...
+  - make test
