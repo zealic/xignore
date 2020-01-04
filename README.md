@@ -16,7 +16,7 @@ A golang package for pattern matching of file paths. Like gitignore, dockerignor
 ## Use
 
 ```golang
-result := xignore.DirMatches("/workspace/my_project", &MatchesOptions{
+result, _ := xignore.DirMatches("/workspace/my_project", &xignore.MatchesOptions{
 	Ignorefile: ".gitignore",
 	Nested: true, // Handle nested ignorefile
 })
