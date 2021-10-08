@@ -22,7 +22,7 @@ func NewSystemMatcher() *Matcher {
 	return &Matcher{afero.NewReadOnlyFs(afero.NewOsFs())}
 }
 
-// Matches returns matched files from dir files.
+// Matches returns matched files from dir files, basedir not support relative path, eg './foo/bar'.
 func (m *Matcher) Matches(basedir string, options *MatchesOptions) (*MatchesResult, error) {
 	vfs := afero.NewBasePathFs(m.fs, basedir)
 	ignorefile := options.Ignorefile
